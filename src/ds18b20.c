@@ -6,11 +6,11 @@ uint8_t dt[9];
 uint8_t ds18b20_Reset(void)
 {
 	uint8_t status;
-	DS18b20_port->RXTX &= ~DS18b20_pin27;
+	DS18b20_pin_0;
 	delayMicroseconds(480);
-	DS18b20_port->RXTX |= DS18b20_pin27;
+	DS18b20_pin_1;
 	delayMicroseconds(65);
-	status = DS18b20_port->RXTX & DS18b20_pin27;
+	status = DS18b20_pin_read;
 	delayMicroseconds(480-65);
 	return (status ? 1 : 0);
 }
@@ -24,7 +24,7 @@ uint8_t ds18b20_Reset_(void)
 
   if((int32_t)(current_time-time_out) >= 0) {
 	  state = RESET_L;
-	  DS18b20_port->RXTX |= DS18b20_pin27;
+	  DS18b20_pin_1;;
   }
 
   switch (state) {
@@ -32,14 +32,14 @@ uint8_t ds18b20_Reset_(void)
   		state = RESET_H;
   		time_out = current_time + TIMEOUT_RESET;
   		time = current_time + 485;  		  				//задержка как минимум на 480 микросекунд
-		DS18b20_port->RXTX &= ~DS18b20_pin27;				//низкий уровень
+  		DS18b20_pin_0;										//низкий уровень
   		  break;
 
   	  case RESET_H:
   		  if((int32_t)(current_time-time) >= 0) {
   			  state = RESET_PRESENCE;
   			  time = current_time + 65;						//задержка как минимум на 60 микросекунд
-  			  DS18b20_port->RXTX |= DS18b20_pin27;			//высокий уровень
+  			  DS18b20_pin_1;;								//высокий уровень
   		  }
   		  break;
 
@@ -47,7 +47,7 @@ uint8_t ds18b20_Reset_(void)
   		  if((int32_t)(current_time-time) >= 0) {
   			state = RESULT;
   			time = current_time + 500;						//задержка как минимум на 480 микросекунд
-  			status = DS18b20_port->RXTX & DS18b20_pin27;	//проверяем уровень
+  			status = DS18b20_pin_read;						//проверяем уровень
   		  }
   		  break;
 
@@ -80,11 +80,11 @@ uint16_t ds18b20_Tread (void)
 				//temp =  (dt[1] << 8) | dt[0];
 				//temp = ds18b20_Convert((uint16_t*) dt);
 				//state = MEASURE_TEMPER;
-				state = CRC;
+				state = CRC_STRATCPAD;
 			}
 			break;
 
-		case CRC:
+		case CRC_STRATCPAD:
 //			for(i=0; i<9; i++) {
 //				data = dt[i];
 //				for(j=0; j<8; j++) {
@@ -121,11 +121,11 @@ uint16_t ds18b20_Tread (void)
 uint8_t ds18b20_ReadBit(void)
 {
 	uint8_t bit = 0;
-	DS18b20_port->RXTX &= ~DS18b20_pin27;						//низкий уровень
+	DS18b20_pin_0;												//низкий уровень
 	delayMicroseconds(2);
-	DS18b20_port->RXTX |= DS18b20_pin27;						//высокий уровень
+	DS18b20_pin_1;												//высокий уровень
 	delayMicroseconds(13);
-	bit = ((DS18b20_port->RXTX & DS18b20_pin27) ? 1 : 0);		//проверяем уровень
+	bit = ((DS18b20_pin_read) ? 1 : 0);							//проверяем уровень
 	delayMicroseconds(45);
 	return bit;
 }
@@ -141,9 +141,9 @@ uint8_t ds18b20_ReadByte(void)
 
 void ds18b20_WriteBit(uint8_t bit)
 {
-	DS18b20_port->RXTX &= ~DS18b20_pin27;
+	DS18b20_pin_0;
 	delayMicroseconds(bit ? 3 : 65);
-	DS18b20_port->RXTX |= DS18b20_pin27;
+	DS18b20_pin_1;
 	delayMicroseconds(bit ? 65 : 3);
 }
 
@@ -177,7 +177,7 @@ uint8_t ds18b20_MeasureTemperCmd(uint8_t mode, uint8_t DevNum)
 	if(ds18b20_Reset_()) {
 		return 1;
 	}
-	MDR_PORTB->RXTX |= PORT_Pin_6;
+//	MDR_PORTB->RXTX |= PORT_Pin_6;
 	if(mode == MODE_SKIP_ROM) {
 		ds18b20_WriteByte(SKIP_ROM);								//SKIP ROM
 	} else if (mode == MODE_MATCH_ROM) {
@@ -190,7 +190,7 @@ uint8_t ds18b20_MeasureTemperCmd(uint8_t mode, uint8_t DevNum)
 		return 1;
 	}
 
-	MDR_PORTB->RXTX &=~PORT_Pin_6;
+//	MDR_PORTB->RXTX &=~PORT_Pin_6;
 	ds18b20_WriteByte(CONVERT_T);								//CONVERT T
 	return 0;
 }

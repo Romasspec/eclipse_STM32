@@ -5,12 +5,17 @@
 //#include <string.h>
 //#include <stdlib.h>
 //#include <stdint.h>
-#include "MDR32F9Qx_config.h"
-#include "MDR32F9Qx_port.h"
+//#include "MDR32F9Qx_config.h"
+//#include "MDR32F9Qx_port.h"
+#include "stm32f10x.h"
 #include "time.h"
 
-#define DS18b20_pin27		PORT_Pin_2
-#define DS18b20_port		MDR_PORTA
+#define DS18b20_pin			GPIO_Pin_13
+#define DS18b20_PORT		GPIOC
+#define DS18b20_pin_0		(DS18b20_PORT->ODR &= ~DS18b20_pin)
+#define DS18b20_pin_1		(DS18b20_PORT->ODR |= DS18b20_pin)
+#define DS18b20_pin_read	(DS18b20_PORT->ODR & DS18b20_pin)
+
 
 #define TIMEOUT_RESET		1500
 #define CRC_POLINOM			((1<<5)|(1<<4)|1)
@@ -52,7 +57,7 @@ enum {
 enum {
 	MEASURE_TEMPER = 0,
 	READ_STRATCPAD,
-	CRC
+	CRC_STRATCPAD
 };
 
 uint8_t ds18b20_Reset_delay(void);

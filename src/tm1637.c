@@ -7,27 +7,27 @@ const uint8_t digitHEX[] = {0x3f, 0x06, 0x5b, 0x4f,
 
 static inline void TM1637_CLK_1(void)
 {
-	TM1637_PORT->RXTX |= TM1637_CLK_PIN;
+	TM1637_PORT->ODR |= TM1637_CLK_PIN;
 }
 
 static inline void TM1637_CLK_0(void)
 {
-	TM1637_PORT->RXTX &=~TM1637_CLK_PIN;
+	TM1637_PORT->ODR &=~TM1637_CLK_PIN;
 }
 
 static inline void TM1637_DIO_1(void)
 {
-	TM1637_PORT->RXTX |= TM1637_DIO_PIN;
+	TM1637_PORT->ODR |= TM1637_DIO_PIN;
 }
 
 static inline void TM1637_DIO_0(void)
 {
-	TM1637_PORT->RXTX &=~TM1637_DIO_PIN;
+	TM1637_PORT->ODR &=~TM1637_DIO_PIN;
 }
 
 static inline uint8_t TM1637_DIO_IN (void)
 {
-	return (TM1637_PORT->RXTX & TM1637_DIO_PIN);
+	return (TM1637_PORT->ODR & TM1637_DIO_PIN);
 }
 
 uint8_t digToHEX(uint8_t digit) {

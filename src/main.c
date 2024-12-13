@@ -1,17 +1,47 @@
 #include "define.h"
 
+void (*task_ptr)(void);
+void (*task_1ms_ptr)(void);
+void (*task_5ms_ptr)(void);
+void task_1ms(void);
+void task_5ms(void);
+void task_1ms_1(void);
+void task_1ms_2(void);
+void task_5ms_1(void);
+void task_5ms_2(void);
+
+uint16_t temper = 0;
+uint8_t temper_start = 0;
+
 int main (void)
 {
+	uint8_t serial_number[8];
+
 	rcc_init();
 	gpio_init ();
 	systic_init();
 
+	task_ptr = &task_1ms;
+	task_1ms_ptr = &task_1ms_1;
+	task_5ms_ptr = &task_5ms_1;
+
+	//while (ds18b20_init(MODE_SKIP_ROM));
+	while (ds18b20_ReadRom_(serial_number));
+	send_CAN(serial_number,8);
+
+	delay_ms(100);
+
+	ds18b20_init(MODE_SKIP_ROM);
+
 	while (1)
 	{
-		delay_ms(100);
-		GPIOB->ODR ^= GPIO_Pin_2;
-	}
+		(*task_ptr)();
 
+		if (temper_start || !temper) {
+			temper_start = 0;
+			temper = ds18b20_Tread();
+		}
+	}
 }
 ErrorStatus HSEStartUpStatus;
 
@@ -93,21 +123,23 @@ void gpio_init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	/* GPIOA Periph clock enable */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
 
 	/* Configure PA13 and PA14 in output pushpull mode */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13 | GPIO_Pin_14;
+	GPIO_InitStructure.GPIO_Pin = TM1637_CLK_PIN | TM1637_DIO_PIN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_Init(TM1637_PORT, &GPIO_InitStructure);
+	GPIO_SetBits(TM1637_PORT,TM1637_CLK_PIN | TM1637_DIO_PIN);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = DS18b20_pin;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_Init(DS18b20_PORT, &GPIO_InitStructure);
+	GPIO_SetBits(DS18b20_PORT, DS18b20_pin);
 }
 
 

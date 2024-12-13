@@ -2,6 +2,8 @@
 #define DEFINE_H
 #include "stm32f10x.h"
 #include "time.h"
+#include "ds18b20.h"
+#include "tm1637.h"
 
 //#include "MDR32F9Qx_config.h"
 //#include "MDR32F9Qx_rst_clk.h"

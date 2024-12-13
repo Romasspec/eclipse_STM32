@@ -146,7 +146,7 @@
 						<entry excluding="src/stm32f10x_fsmc.c|src/stm32f10x_i2c.c|src/stm32f10x_iwdg.c|src/stm32f10x_exti.c|src/stm32f10x_dma.c|src/stm32f10x_pwr.c|src/stm32f10x_dbgmcu.c|src/stm32f10x_dac.c|src/stm32f10x_crc.c|src/stm32f10x_cec.c|src/stm32f10x_rtc.c|src/stm32f10x_sdio.c|src/stm32f10x_can.c|src/stm32f10x_bkp.c|src/stm32f10x_adc.c|src/stm32f10x_spi.c|src/stm32f10x_tim.c|src/stm32f10x_usart.c|src/stm32f10x_wwdg.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="SPL"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="include"/>
 						<entry excluding="script2.ld" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ldscripts"/>
-						<entry excluding="tm1637.h|tm1637.c|ds18b20.h|ds18b20.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="startup"/>
 					</sourceEntries>
 				</configuration>

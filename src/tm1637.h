@@ -1,13 +1,14 @@
 #ifndef TM1637_H_
 #define TM1637_H_
 
-#include "MDR32F9Qx_config.h"
-#include "MDR32F9Qx_port.h"
+//#include "MDR32F9Qx_config.h"
+//#include "MDR32F9Qx_port.h"
+#include "stm32f10x.h"
 #include "time.h"
 
-#define TM1637_DIO_PIN		PORT_Pin_1
-#define TM1637_CLK_PIN		PORT_Pin_2
-#define TM1637_PORT			MDR_PORTB
+#define TM1637_DIO_PIN 			GPIO_Pin_13
+#define TM1637_CLK_PIN 			GPIO_Pin_14
+#define TM1637_PORT				GPIOA
 //#define TM1637_CLK_1()		TM1637_PORT->RXTX |= TM1637_CLK_PIN
 //#define TM1637_CLK_0()		TM1637_PORT->RXTX &=~TM1637_CLK_PIN
 //#define TM1637_DIO_1()		TM1637_PORT->RXTX |= TM1637_DIO_PIN
