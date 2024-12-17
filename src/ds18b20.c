@@ -67,21 +67,30 @@ state_temper_sensor ds18b20_Tread (void)
 {
 
 	static uint8_t state = MEASURE_TEMPER;
-//	MDR_PORTB->RXTX |= PORT_Pin_6;
+	static uint32_t timeout_measure, time_out;
+	uint32_t current_time = millis();
+
+	if((int32_t)(current_time-time_out) >= 0) {
+		state = MEASURE_TEMPER;
+	}
 
 	switch (state) {
 		case MEASURE_TEMPER:
 			if(!ds18b20_MeasureTemperCmd(MODE_MATCH_ROM, 0)) {
+				timeout_measure = millis() + 750;
+				time_out = timeout_measure + 250;
+				state = WAIT_MEASURE_TEMPER;
+			}
+			break;
+
+		case WAIT_MEASURE_TEMPER:
+			if ((int32_t)(millis()-timeout_measure) >= 0) {
 				state = READ_STRATCPAD;
 			}
-
 			break;
 
 		case READ_STRATCPAD:
 			if (!ds18b20_ReadStratcpad_(MODE_MATCH_ROM, dt, 0)) {
-				//temp =  (dt[1] << 8) | dt[0];
-				//temp = ds18b20_Convert((uint16_t*) dt);
-				//state = MEASURE_TEMPER;
 				state = CRC_STRATCPAD;
 			}
 			break;
@@ -113,15 +122,7 @@ state_temper_sensor ds18b20_Tread (void)
 			state = MEASURE_TEMPER;
 			return MEASURE_COMPLETE;
 	}
-//	MDR_PORTB->RXTX &=~PORT_Pin_6;
 	return MEASURE_TEMPERATURE;
-
-//	if (ds18b20_Reset()) {
-//		MDR_PORTB->RXTX &=~PORT_Pin_6;
-//	} else {
-//		MDR_PORTB->RXTX |= PORT_Pin_6;
-//	}
-//
 }
 
 uint16_t ds18b20_GetTemp(void) {
@@ -187,7 +188,7 @@ uint8_t ds18b20_MeasureTemperCmd(uint8_t mode, uint8_t DevNum)
 	if(ds18b20_Reset_()) {
 		return 1;
 	}
-//	MDR_PORTB->RXTX |= PORT_Pin_6;
+
 	if(mode == MODE_SKIP_ROM) {
 		ds18b20_WriteByte(SKIP_ROM);								//SKIP ROM
 	} else if (mode == MODE_MATCH_ROM) {
@@ -200,7 +201,6 @@ uint8_t ds18b20_MeasureTemperCmd(uint8_t mode, uint8_t DevNum)
 		return 1;
 	}
 
-//	MDR_PORTB->RXTX &=~PORT_Pin_6;
 	ds18b20_WriteByte(CONVERT_T);								//CONVERT T
 	return 0;
 }
@@ -264,14 +264,11 @@ uint16_t ds18b20_Convert(uint16_t *dt)
 {
 	uint16_t temp;
 	if(*dt & 0x0800) {
-		temp = (~*dt) + 1 + 0x0800;
+		temp = (~*dt) + 1 + 0x0800;				// отрицательные темепратуры передаются в доп. коде
 	} else {
 		temp = *dt;
 	}
 	temp = ((temp<<4) & 0xFF00) |(((temp & 0x000F) * 100) >> 4);
-//		temp = (*dt<<4) & 0xFF00;
-//		temp |= ;
-
 
 	return temp;
 }

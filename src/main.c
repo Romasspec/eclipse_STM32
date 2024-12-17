@@ -12,7 +12,7 @@ void task_5ms_2(void);
 
 uint16_t temper = 0;
 uint8_t temper_start = 0;
-uint8_t ds18b20found = 0;
+uint8_t ds18b20found = 0, ds18b20read = 0;
 uint8_t serial_number[8];
 
 int main (void)
@@ -27,23 +27,23 @@ int main (void)
 	task_1ms_ptr = &task_1ms_1;
 	task_5ms_ptr = &task_5ms_1;
 
-	timeout = millis() + TIMEOUT_INIT;
-	while ((int32_t)(millis()-timeout) < 0)							// инициализация датчика
-	{
-		if (!ds18b20_init(MODE_SKIP_ROM))
-		{
-			while (1)
-			{
-				if(!ds18b20_ReadRom_(serial_number)) {
-					ds18b20found = 1;
-					break;
-				}
-			}
-		}
-//		if(ds18b20found) {
-//			break;
+//	timeout = millis() + TIMEOUT_INIT;
+//	while ((int32_t)(millis()-timeout) < 0)							// инициализация датчика
+//	{
+//		if (!ds18b20_init(MODE_SKIP_ROM))
+//		{
+//			while (1)
+//			{
+//				if(!ds18b20_ReadRom_(serial_number)) {
+//					ds18b20found = 1;
+//					break;
+//				}
+//			}
 //		}
-	}
+////		if(ds18b20found) {
+////			break;
+////		}
+//	}
 
 	delay_ms(100);
 
@@ -51,7 +51,7 @@ int main (void)
 	{
 		(*task_ptr)();
 
-		if (!ds18b20found) {										// инициализация датчика при его подключении в процессе работы
+		if (!ds18b20found && temper_start) {										// инициализация датчика при его подключении в процессе работы
 			if (!ds18b20_init(MODE_SKIP_ROM)) {
 				while (1)
 				{
@@ -61,6 +61,7 @@ int main (void)
 					}
 				}
 			}
+			temper_start = 0;
 		}
 
 		if(temper_start && ds18b20found) {
@@ -68,16 +69,21 @@ int main (void)
 			if(state == MEASURE_COMPLETE) {
 				temper = ds18b20_GetTemp();
 				temper_start = 0;
+				ds18b20read = 1;
 			} else if (state == ERROR_CRC) {
 				ds18b20found = 0;
 				temper_start = 0;
+				temper = 0;
+				ds18b20read = 0;
 			} else if ((int32_t)(millis()-timeout) >= 0) {			// определение отсутствия датчика
 				ds18b20found = 0;
 				temper_start = 0;
+				temper = 0;
+				ds18b20read = 0;
 			//	LED_ON();
 			}
 		} else if (ds18b20found) {
-			timeout = millis() + 200;								// таймаут для определения отсутствия датчика
+			timeout = millis() + 2000;								// таймаут для определения отсутствия датчика
 		}
 	}
 }
@@ -181,6 +187,9 @@ void task_5ms_2(void)
 
 		if(!ds18b20found) {
 			buf[0] = buf[1] = buf[2] = buf[3] = digToHEX (11);
+		} else if (!ds18b20read) {
+			buf[0] = buf[1] = buf[3] =  digToHEX (10);
+			buf[2] = 0x80;
 		}
 
 		tm1637_send_buf(buf, 4);
