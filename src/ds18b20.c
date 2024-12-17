@@ -1,11 +1,12 @@
 #include "ds18b20.h"
 
-static const uint8_t s_numb[]={0x28, 0x0F, 0xF2, 0x6A, 0x00, 0x00, 0x00, 0x94};
+//static const uint8_t s_numb[]={0x28, 0x0F, 0xF2, 0x6A, 0x00, 0x00, 0x00, 0x94};
 uint8_t dt[9];
+extern uint8_t serial_number[8];
 
 uint8_t ds18b20_Reset(void)
 {
-	uint8_t status;
+	uint16_t status;
 	DS18b20_pin_0;
 	delayMicroseconds(480);
 	DS18b20_pin_1;
@@ -17,7 +18,7 @@ uint8_t ds18b20_Reset(void)
 
 uint8_t ds18b20_Reset_(void)
 {
- static uint8_t status = 1;
+  static uint16_t status = 1;
   static uint32_t time = 0, time_out = 0;
   static uint8_t state;
   uint32_t current_time = micros();
@@ -60,10 +61,11 @@ uint8_t ds18b20_Reset_(void)
   }
   return 1;
 }
+uint16_t temp = 0;
 
-uint16_t ds18b20_Tread (void)
+state_temper_sensor ds18b20_Tread (void)
 {
-	uint16_t temp = 0;
+
 	static uint8_t state = MEASURE_TEMPER;
 //	MDR_PORTB->RXTX |= PORT_Pin_6;
 
@@ -102,13 +104,17 @@ uint16_t ds18b20_Tread (void)
 			if (calc_CRC(dt, 9) == 0) {
 //				*((uint16_t*) dt) = 0xFF5E;
 				temp = ds18b20_Convert((uint16_t*) dt);
+
+			} else {
+				state = MEASURE_TEMPER;
+				return ERROR_CRC;
 			}
 
 			state = MEASURE_TEMPER;
-			break;
+			return MEASURE_COMPLETE;
 	}
 //	MDR_PORTB->RXTX &=~PORT_Pin_6;
-	return temp;
+	return MEASURE_TEMPERATURE;
 
 //	if (ds18b20_Reset()) {
 //		MDR_PORTB->RXTX &=~PORT_Pin_6;
@@ -116,6 +122,10 @@ uint16_t ds18b20_Tread (void)
 //		MDR_PORTB->RXTX |= PORT_Pin_6;
 //	}
 //
+}
+
+uint16_t ds18b20_GetTemp(void) {
+	return temp;
 }
 
 uint8_t ds18b20_ReadBit(void)
@@ -184,7 +194,7 @@ uint8_t ds18b20_MeasureTemperCmd(uint8_t mode, uint8_t DevNum)
 		ds18b20_WriteByte(MATCH_ROM);
 
 		for(i=0; i<8; i++) {
-			ds18b20_WriteByte(*(s_numb+i));
+			ds18b20_WriteByte(*(serial_number+i));
 		}
 	} else {
 		return 1;
@@ -230,7 +240,7 @@ uint8_t ds18b20_ReadStratcpad_(uint8_t mode, uint8_t *Data, uint8_t DevNum)
 		ds18b20_WriteByte(MATCH_ROM);
 
 		for (i=0; i<8; i++) {
-			ds18b20_WriteByte(*(s_numb+i));
+			ds18b20_WriteByte(*(serial_number+i));
 		}
 		i=0;
 	} else if (!i) {

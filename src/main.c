@@ -12,11 +12,13 @@ void task_5ms_2(void);
 
 uint16_t temper = 0;
 uint8_t temper_start = 0;
+uint8_t ds18b20found = 0;
+uint8_t serial_number[8];
 
 int main (void)
 {
-	uint8_t serial_number[8];
-
+	uint32_t timeout;
+	state_temper_sensor state;
 	rcc_init();
 	gpio_init ();
 	systic_init();
@@ -25,24 +27,170 @@ int main (void)
 	task_1ms_ptr = &task_1ms_1;
 	task_5ms_ptr = &task_5ms_1;
 
-	//while (ds18b20_init(MODE_SKIP_ROM));
-	while (ds18b20_ReadRom_(serial_number));
-	send_CAN(serial_number,8);
+	timeout = millis() + TIMEOUT_INIT;
+	while ((int32_t)(millis()-timeout) < 0)							// инициализация датчика
+	{
+		if (!ds18b20_init(MODE_SKIP_ROM))
+		{
+			while (1)
+			{
+				if(!ds18b20_ReadRom_(serial_number)) {
+					ds18b20found = 1;
+					break;
+				}
+			}
+		}
+//		if(ds18b20found) {
+//			break;
+//		}
+	}
 
 	delay_ms(100);
-
-	ds18b20_init(MODE_SKIP_ROM);
 
 	while (1)
 	{
 		(*task_ptr)();
 
-		if (temper_start || !temper) {
-			temper_start = 0;
-			temper = ds18b20_Tread();
+		if (!ds18b20found) {										// инициализация датчика при его подключении в процессе работы
+			if (!ds18b20_init(MODE_SKIP_ROM)) {
+				while (1)
+				{
+					if(!ds18b20_ReadRom_(serial_number)) {
+						ds18b20found = 1;
+						break;
+					}
+				}
+			}
+		}
+
+		if(temper_start && ds18b20found) {
+			state = ds18b20_Tread();
+			if(state == MEASURE_COMPLETE) {
+				temper = ds18b20_GetTemp();
+				temper_start = 0;
+			} else if (state == ERROR_CRC) {
+				ds18b20found = 0;
+				temper_start = 0;
+			} else if ((int32_t)(millis()-timeout) >= 0) {			// определение отсутствия датчика
+				ds18b20found = 0;
+				temper_start = 0;
+			//	LED_ON();
+			}
+		} else if (ds18b20found) {
+			timeout = millis() + 200;								// таймаут для определения отсутствия датчика
 		}
 	}
 }
+
+
+//=================================================================================
+//  STATE-MACHINE SEQUENCING AND SYNCRONIZATION
+//=================================================================================
+
+//--------------------------------- FRAMEWORK -------------------------------------
+void task_1ms(void)
+{
+	static uint32_t time_task = 0;
+	uint32_t current_time = micros();
+	if ((int32_t)(current_time-time_task) >= 0)
+	{
+		time_task = current_time + 1000;
+		(*task_1ms_ptr)();
+	}
+
+	task_ptr = &task_5ms;
+}
+
+void task_5ms(void)
+{
+	static uint32_t time_task = 0;
+	uint32_t current_time = micros();
+	if ((int32_t)(current_time-time_task) >= 0)
+	{
+		time_task = current_time +  5000;
+		(*task_5ms_ptr)();
+	}
+	task_ptr = &task_1ms;
+}
+
+//=================================================================================
+//  A - TASKS - 1мс
+//=================================================================================
+void task_1ms_1(void)
+{
+	task_1ms_ptr = &task_1ms_2;
+}
+//extern uint8_t dt[8];
+void task_1ms_2(void)
+{
+	task_1ms_ptr = &task_1ms_1;
+}
+
+//=================================================================================
+//  B - TASKS - 5 мс
+//=================================================================================
+void task_5ms_1(void)
+{
+	static uint32_t time_task = 0, time_led_on;
+	uint32_t current_time = micros();
+	if ((int32_t)(current_time-time_task) >= 0)
+	{
+		time_task = current_time + 1000000;
+		time_led_on = current_time + 10000;
+		temper_start = 1;
+		LED_ON();
+	}
+
+	if ((int32_t)(current_time-time_led_on) >= 0)
+	{
+		LED_OFF();
+	}
+
+	task_5ms_ptr = &task_5ms_2;
+}
+
+void task_5ms_2(void)
+{
+	uint8_t buf[4];
+	static uint32_t time_task = 0;
+	uint32_t current_time = micros();
+	if ((int32_t)(current_time-time_task) >= 0)
+	{
+		time_task = current_time + 500000;
+
+		buf[0] = (uint8_t) ((temper>>8) & 0x7F);
+		if (buf[0] > 99) {
+			buf[1] = digToHEX((buf[0] % 1000) / 100);
+			buf[2] = digToHEX((buf[0] % 100) / 10);
+			buf[3] = digToHEX((buf[0] % 10) / 1);
+		} else if (buf[0] > 9) {
+			buf[1] = digToHEX((buf[0] % 100) / 10);
+			buf[2] = digToHEX((buf[0] % 10) / 1) | 0x80;
+			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
+		} else {
+			buf[1] = digToHEX((buf[0] % 1) % 10) | 0x80;
+			buf[2] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
+			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 10) / 1);
+		}
+
+		if (temper & 0x8000) {
+			buf[0] = digToHEX (11);
+		} else {
+			buf[0] = digToHEX(10);
+		}
+
+		if(!ds18b20found) {
+			buf[0] = buf[1] = buf[2] = buf[3] = digToHEX (11);
+		}
+
+		tm1637_send_buf(buf, 4);
+		tm1637_set_brightness(BRIGHTNESS1);
+	}
+
+	task_5ms_ptr = &task_5ms_1;
+}
+//------------------------------END FRAMEWORK -------------------------------------
+
 ErrorStatus HSEStartUpStatus;
 
 void rcc_init (void)
@@ -123,23 +271,35 @@ void gpio_init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	/* GPIOA Periph clock enable */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_Disable, ENABLE);
 
-	/* Configure PA13 and PA14 in output pushpull mode */
+	/* Configure PA13 and PA14 in output open drive mode */
 	GPIO_InitStructure.GPIO_Pin = TM1637_CLK_PIN | TM1637_DIO_PIN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_Init(TM1637_PORT, &GPIO_InitStructure);
 	GPIO_SetBits(TM1637_PORT,TM1637_CLK_PIN | TM1637_DIO_PIN);
 
+	GPIO_InitStructure.GPIO_Pin = LED_pin;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(LED_PORT, &GPIO_InitStructure);
+//	GPIO_SetBits(LED_PORT, LED_pin);
+
 	GPIO_InitStructure.GPIO_Pin = DS18b20_pin;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_Init(DS18b20_PORT, &GPIO_InitStructure);
 	GPIO_SetBits(DS18b20_PORT, DS18b20_pin);
+
+	GPIO_InitStructure.GPIO_Pin = DS18b20_GND_pin;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_Init(DS18b20_GND_PORT, &GPIO_InitStructure);
 }
 
 

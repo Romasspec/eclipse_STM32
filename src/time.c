@@ -8,7 +8,6 @@ static volatile uint32_t usTicks = 0;
 void SysTick_Handler(void)
 {
 	sysTickUptime++;
-	GPIOA->ODR ^= GPIO_Pin_13;
 }
 
 // Return system uptime in microseconds (rollover in 70minutes)

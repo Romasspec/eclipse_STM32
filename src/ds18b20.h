@@ -10,14 +10,17 @@
 #include "stm32f10x.h"
 #include "time.h"
 
-#define DS18b20_pin			GPIO_Pin_13
-#define DS18b20_PORT		GPIOC
+#define DS18b20_pin			GPIO_Pin_11
+#define DS18b20_PORT		GPIOB
 #define DS18b20_pin_0		(DS18b20_PORT->ODR &= ~DS18b20_pin)
 #define DS18b20_pin_1		(DS18b20_PORT->ODR |= DS18b20_pin)
-#define DS18b20_pin_read	(DS18b20_PORT->ODR & DS18b20_pin)
+#define DS18b20_pin_read	(DS18b20_PORT->IDR & DS18b20_pin)
 
+#define DS18b20_GND_pin		GPIO_Pin_10
+#define DS18b20_GND_PORT	GPIOB
 
-#define TIMEOUT_RESET		1500
+#define TIMEOUT_RESET		1500		// 1500 мкс
+#define TIMEOUT_INIT		1000		// 1000 мс
 #define CRC_POLINOM			((1<<5)|(1<<4)|1)
 //	ROM FUNCTION COMMANDS
 #define READ_ROM			0x33
@@ -60,10 +63,17 @@ enum {
 	CRC_STRATCPAD
 };
 
+typedef enum {
+	MEASURE_COMPLETE = 0,
+	MEASURE_TEMPERATURE,
+	ERROR_CRC,
+	ERROR_SENSOR
+} state_temper_sensor;
+
 uint8_t ds18b20_Reset_delay(void);
 
 uint8_t ds18b20_Reset(void);
-uint16_t ds18b20_Tread (void);
+uint8_t ds18b20_Tread (void);
 uint8_t ds18b20_ReadBit(void);
 uint8_t ds18b20_ReadByte(void);
 void ds18b20_WriteBit(uint8_t bit);
@@ -75,6 +85,7 @@ uint8_t ds18b20_ReadStratcpad_(uint8_t mode, uint8_t *Data, uint8_t DevNum);
 uint16_t ds18b20_Convert(uint16_t *dt);
 uint8_t calc_CRC (uint8_t * dt, uint8_t lenght);
 uint8_t ds18b20_ReadRom_(uint8_t *Data);
+uint16_t ds18b20_GetTemp(void);
 //--------------------------------------------------
 
 #endif /* DS18B20_H_ */

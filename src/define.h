@@ -13,7 +13,13 @@
 //#include "time.h"
 //#include "tm1637.h"
 
-#define PGN_DEV_RESET					((uint8_t) 0x3E)
+#define PGN_DEV_RESET		((uint8_t) 0x3E)
+
+#define LED_pin				GPIO_Pin_13
+#define LED_PORT			GPIOC
+#define LED_TOGLE()			(LED_PORT->ODR ^= LED_pin)
+#define LED_ON()			(LED_PORT->ODR |= LED_pin)
+#define LED_OFF()			(LED_PORT->ODR &=~LED_pin)
 
 typedef struct
 {
