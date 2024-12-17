@@ -174,7 +174,7 @@ void task_5ms_2(void)
 			buf[2] = digToHEX((buf[0] % 10) / 1) | 0x80;
 			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
 		} else {
-			buf[1] = digToHEX((buf[0] % 1) % 10) | 0x80;
+			buf[1] = digToHEX((buf[0] % 10) / 1) | 0x80;
 			buf[2] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
 			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 10) / 1);
 		}
