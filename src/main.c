@@ -19,6 +19,7 @@ int main (void)
 {
 	uint32_t timeout;
 	state_temper_sensor state;
+
 	rcc_init();
 	gpio_init ();
 	systic_init();

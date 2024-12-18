@@ -36,7 +36,7 @@
 #define CONVERT_T			0x44
 #define RECALL_E2			0xB8
 #define READ_POWER_SUPPLY	0xB4
-
+#define SIZE_BUF			4
 
 enum {
 	RESET_L = 0,

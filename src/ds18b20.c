@@ -69,6 +69,9 @@ state_temper_sensor ds18b20_Tread (void)
 	static uint8_t state = MEASURE_TEMPER;
 	static uint32_t timeout_measure, time_out;
 	uint32_t current_time = millis();
+	static uint16_t buf[SIZE_BUF];
+	uint32_t tmp;
+	uint8_t i;
 
 	if((int32_t)(current_time-time_out) >= 0) {
 		state = MEASURE_TEMPER;
@@ -112,7 +115,14 @@ state_temper_sensor ds18b20_Tread (void)
 
 			if (calc_CRC(dt, 9) == 0) {
 //				*((uint16_t*) dt) = 0xFF5E;
-				temp = ds18b20_Convert((uint16_t*) dt);
+
+				tmp = buf[SIZE_BUF-1] = *((uint16_t*) dt);
+				for (i=0; i<SIZE_BUF-1; i++) {
+					buf[i] = buf[i+1];
+					tmp += buf[i];
+				}
+				tmp = tmp>>2;
+				temp = ds18b20_Convert((uint16_t*)(&tmp));
 
 			} else {
 				state = MEASURE_TEMPER;
