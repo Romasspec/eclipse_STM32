@@ -170,15 +170,19 @@ void task_5ms_2(void)
 			buf[1] = digToHEX((buf[0] % 1000) / 100);
 			buf[2] = digToHEX((buf[0] % 100) / 10);
 			buf[3] = digToHEX((buf[0] % 10) / 1);
-		} else if (buf[0] > 9) {
+		} else {
 			buf[1] = digToHEX((buf[0] % 100) / 10);
+			if (buf[1] == digToHEX(0)) {
+				buf[1] = digToHEX (10);
+			}
 			buf[2] = digToHEX((buf[0] % 10) / 1) | 0x80;
 			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
-		} else {
-			buf[1] = digToHEX((buf[0] % 10) / 1) | 0x80;
-			buf[2] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
-			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 10) / 1);
 		}
+//		} else {
+//			buf[1] = digToHEX((buf[0] % 10) / 1) | 0x80;
+//			buf[2] = digToHEX(((uint8_t)(temper & 0x00FF) % 100) / 10);
+//			buf[3] = digToHEX(((uint8_t)(temper & 0x00FF) % 10) / 1);
+//		}
 
 		if (temper & 0x8000) {
 			buf[0] = digToHEX (11);
